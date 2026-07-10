@@ -210,7 +210,12 @@ export abstract class Ability {
           this.serviceSubtype
         );
     } else {
-      service = this.platformAccessory.getService(this.serviceClass);
+      // no name/subtype: reuse an existing service of this class, or add one if absent.
+      // HAP auto-creates some services (e.g. AccessoryInformation) but not others
+      // (e.g. ServiceLabel), so we must add it ourselves when missing.
+      service =
+        this.platformAccessory.getService(this.serviceClass) ||
+        this.platformAccessory.addService(this.serviceClass);
     }
     return service ?? null;
   }
