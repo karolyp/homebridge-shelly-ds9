@@ -1,9 +1,17 @@
 {
-  "name": "homebridge-shelly-ds9",
-  "version": "1.5.8",
-  "description": "Homebridge plugin for the next generation of Shelly devices",
+  "name": "@karolyp/homebridge-shelly-ds9",
+  "version": "1.5.9",
+  "description": "Homebridge plugin for the next generation of Shelly devices (fork with Shelly Plus i4 DC support)",
   "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "config.schema.json"
+  ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "rimraf ./dist && tsc",
     "lint": "eslint ./src --ext .ts,.js --max-warnings=0",
     "test": "jest",
@@ -17,7 +25,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cubi1337/homebridge-shelly-ds9.git"
+    "url": "git+https://github.com/karolyp/homebridge-shelly-ds9.git"
   },
   "keywords": [
     "homebridge",
@@ -27,9 +35,9 @@
   "author": "Alexander Rydén",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/cubi1337/homebridge-shelly-ds9/issues"
+    "url": "https://github.com/karolyp/homebridge-shelly-ds9/issues"
   },
-  "homepage": "https://github.com/cubi1337/homebridge-shelly-ds9#readme",
+  "homepage": "https://github.com/karolyp/homebridge-shelly-ds9#readme",
   "funding": {
     "type": "kofi",
     "url": "https://ko-fi.com/cubi1337"
