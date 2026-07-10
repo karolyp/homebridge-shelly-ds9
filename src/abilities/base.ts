@@ -215,7 +215,11 @@ export abstract class Ability {
       // (e.g. ServiceLabel), so we must add it ourselves when missing.
       service =
         this.platformAccessory.getService(this.serviceClass) ||
-        this.platformAccessory.addService(this.serviceClass);
+        this.platformAccessory.addService(
+          this.serviceClass,
+          this.platformAccessory.displayName,
+          "service-label"
+        );
     }
     return service ?? null;
   }
