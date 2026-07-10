@@ -1,4 +1,4 @@
-import { ShellyPlusI4, ShellyPlusI4V3 } from "shellies-ds9";
+import { Device, ShellyPlusI4, ShellyPlusI4V3 } from "shellies-ds9";
 
 import { DeviceDelegate } from "./base";
 import {
@@ -65,8 +65,21 @@ export class ShellyPlusI4Delegate extends DeviceDelegate {
   }
 }
 
+/**
+ * Shelly Plus i4 DC — identical to the AC Plus i4 (4 inputs, no relays),
+ * only the model code differs. Not defined in shellies-ds9@1.1.9, so we
+ * register it here.
+ */
+export class ShellyPlusI4Dc extends ShellyPlusI4 {
+  static readonly model: string = "SNSN-0D24X";
+  static readonly modelName: string = "Shelly Plus I4 DC";
+}
+
+Device.registerClass(ShellyPlusI4Dc);
+
 DeviceDelegate.registerDelegate(
   ShellyPlusI4Delegate,
   ShellyPlusI4,
-  ShellyPlusI4V3
+  ShellyPlusI4V3,
+  ShellyPlusI4Dc
 );

@@ -20,6 +20,7 @@ For the first generation, see [homebridge-shelly](https://github.com/alexryd/hom
 - [Shelly Plus PM Mini + V3](https://kb.shelly.cloud/knowledge-base/shelly-plus-pm-mini)
 - [Shelly Plus 2 PM](https://kb.shelly.cloud/knowledge-base/shelly-plus-2pm)
 - [Shelly Plus i4](https://kb.shelly.cloud/knowledge-base/shelly-plus-i4)
+- [Shelly Plus i4 DC](https://kb.shelly.cloud/knowledge-base/shelly-plus-i4-dc)
 - [Shelly Plus Plug US](https://kb.shelly.cloud/knowledge-base/shelly-plus-plug-us)
 - [Shelly Plus Plug S](https://kb.shelly.cloud/knowledge-base/shelly-plus-plug-s-1)
 - [Shelly Plus Plug UK](https://kb.shelly.cloud/knowledge-base/shelly-plus-plug-uk)
