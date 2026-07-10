@@ -1,11 +1,15 @@
-import { Device, ShellyPlusI4, ShellyPlusI4V3 } from "shellies-ds9";
+import { Device, Input, ShellyPlusI4, ShellyPlusI4V3 } from "shellies-ds9";
 
 import { DeviceDelegate } from "./base";
+import { InputOptions } from "../config";
 import {
+  DoorbellAbility,
   ReadonlySwitchAbility,
   ServiceLabelAbility,
   StatelessProgrammableSwitchAbility,
 } from "../abilities";
+
+type InputMode = "excluded" | "button" | "switch" | "doorbell";
 
 /**
  * Handles Shelly Plus I4 devices.
@@ -13,55 +17,64 @@ import {
 export class ShellyPlusI4Delegate extends DeviceDelegate {
   protected setup() {
     const d = this.device as ShellyPlusI4;
+    const inputs = [d.input0, d.input1, d.input2, d.input3];
 
-    // determine each input type
-    const input0IsButton = d.input0.config?.type === "button";
-    const input1IsButton = d.input1.config?.type === "button";
-    const input2IsButton = d.input2.config?.type === "button";
-    const input3IsButton = d.input3.config?.type === "button";
+    // resolve how each input should be represented, using the plugin config if set
+    // and falling back to the input type configured on the Shelly device
+    const modes = inputs.map((input) => this.resolveInputMode(input));
 
-    // create an accessory for all button inputs
+    // create a doorbell accessory for each input (only active when configured as one)
+    inputs.forEach((input, i) => {
+      this.createAccessory(
+        `doorbell${i}`,
+        null,
+        new DoorbellAbility(input)
+      ).setActive(modes[i] === "doorbell");
+    });
+
+    // create a single accessory grouping all button inputs
     this.createAccessory(
       "buttons",
       null,
       new StatelessProgrammableSwitchAbility(d.input0).setActive(
-        input0IsButton
+        modes[0] === "button"
       ),
       new StatelessProgrammableSwitchAbility(d.input1).setActive(
-        input1IsButton
+        modes[1] === "button"
       ),
       new StatelessProgrammableSwitchAbility(d.input2).setActive(
-        input2IsButton
+        modes[2] === "button"
       ),
       new StatelessProgrammableSwitchAbility(d.input3).setActive(
-        input3IsButton
+        modes[3] === "button"
       ),
       new ServiceLabelAbility()
-    ).setActive(
-      input0IsButton || input1IsButton || input2IsButton || input3IsButton
-    );
+    ).setActive(modes.some((m) => m === "button"));
 
     // create accessories for all switch inputs
-    this.createAccessory(
-      "switch0",
-      null,
-      new ReadonlySwitchAbility(d.input0)
-    ).setActive(!input0IsButton);
-    this.createAccessory(
-      "switch1",
-      null,
-      new ReadonlySwitchAbility(d.input1)
-    ).setActive(!input1IsButton);
-    this.createAccessory(
-      "switch2",
-      null,
-      new ReadonlySwitchAbility(d.input2)
-    ).setActive(!input2IsButton);
-    this.createAccessory(
-      "switch3",
-      null,
-      new ReadonlySwitchAbility(d.input3)
-    ).setActive(!input3IsButton);
+    inputs.forEach((input, i) => {
+      this.createAccessory(
+        `switch${i}`,
+        null,
+        new ReadonlySwitchAbility(input)
+      ).setActive(modes[i] === "switch");
+    });
+  }
+
+  /**
+   * Determines how the given input should be represented in HomeKit.
+   */
+  protected resolveInputMode(input: Input): InputMode {
+    const opts = this.getComponentOptions<InputOptions>(input) ?? {};
+
+    if (opts.exclude) {
+      return "excluded";
+    }
+    if (opts.type) {
+      return opts.type;
+    }
+
+    return input.config?.type === "button" ? "button" : "switch";
   }
 }
 

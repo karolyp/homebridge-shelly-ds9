@@ -80,6 +80,21 @@ export interface LightOptions {
   exclude?: boolean;
 }
 
+export interface InputOptions {
+  /**
+   * Whether this input should be excluded (not exposed to HomeKit).
+   */
+  exclude?: boolean;
+  /**
+   * How this input should be represented in HomeKit.
+   * If omitted, the input's type configured on the Shelly device is used
+   * ('button' -> stateless programmable switch, otherwise a read-only switch).
+   * Set to 'doorbell' to expose the input as a HomeKit Doorbell (the input must
+   * be configured as type 'button' on the Shelly device for this to work).
+   */
+  type?: 'button' | 'switch' | 'doorbell';
+}
+
 export interface DeviceOptions {
   /**
    * The name of the device.
@@ -121,6 +136,13 @@ export interface DeviceOptions {
    * Options for devices that have a cover.
    */
   [ 'cover:0' ]?: CoverOptions;
+  /**
+   * Options for devices that have one or more inputs.
+   */
+  [ 'input:0' ]?: InputOptions;
+  [ 'input:1' ]?: InputOptions;
+  [ 'input:2' ]?: InputOptions;
+  [ 'input:3' ]?: InputOptions;
 }
 
 const DEFAULT_DEVICE_OPTIONS: Readonly<DeviceOptions> = {
