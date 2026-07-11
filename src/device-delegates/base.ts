@@ -16,6 +16,18 @@ import { CoverOptions, DeviceOptions, SwitchOptions, LightOptions } from '../con
 import { ShellyPlatform } from '../platform';
 
 /**
+ * The close reason used by the RPC handler when it closes the socket on our behalf.
+ * A close with this reason must not trigger a reconnection.
+ */
+const USER_REQUESTED_DISCONNECT = 'User request';
+
+/**
+ * The intervals, in seconds, between our own reconnection attempts. The last value is
+ * reused for all subsequent attempts.
+ */
+const RECONNECT_INTERVALS = [5, 10, 30, 60, 5 * 60, 10 * 60];
+
+/**
  * Describes a device delegate class.
  */
 export interface DeviceDelegateClass {
@@ -114,6 +126,21 @@ export abstract class DeviceDelegate {
    * Used to keep track of whether a connection had been established when the 'disconnect' event is emitted by our RPC handler.
    */
   protected connected: boolean;
+
+  /**
+   * Timeout used to schedule our own reconnection attempts.
+   */
+  protected reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * The number of reconnection attempts made since the last successful connection.
+   */
+  protected reconnectAttempt = 0;
+
+  /**
+   * Whether this delegate has been destroyed.
+   */
+  protected destroyed = false;
 
   /**
    * @param device - The device to handle.
@@ -269,6 +296,10 @@ export abstract class DeviceDelegate {
   protected handleConnect() {
     this.log.info('Device connected');
     this.connected = true;
+
+    // a connection was established, so abandon any reconnection attempts of our own
+    this.clearReconnectTimeout();
+    this.reconnectAttempt = 0;
   }
 
   /**
@@ -277,6 +308,8 @@ export abstract class DeviceDelegate {
   protected handleDisconnect(code: number, reason: string, reconnectIn: number | null) {
     const details = reason.length > 0 ? 'reason: ' + reason : 'code: ' + code;
     this.log.warn((this.connected ? 'Device disconnected' : 'Connection failed') + ' (' + details + ')');
+
+    this.connected = false;
 
     if (reconnectIn !== null) {
       let msg = 'Reconnecting in ';
@@ -290,9 +323,54 @@ export abstract class DeviceDelegate {
       }
 
       this.log.info(msg);
+      return;
     }
 
-    this.connected = false;
+    // The RPC handler only reconnects when the close code isn't 1000. A Shelly closes
+    // with 1000 ('Bye') when it reboots, which is indistinguishable from us closing the
+    // socket ourselves, so no reconnection is scheduled and the device stays offline
+    // until homebridge is restarted. Reconnect ourselves, unless we closed the socket.
+    if (reason !== USER_REQUESTED_DISCONNECT) {
+      this.scheduleReconnect();
+    }
+  }
+
+  /**
+   * Schedules a reconnection attempt, backing off after repeated failures.
+   */
+  protected scheduleReconnect() {
+    if (this.reconnectTimeout !== null || this.destroyed) {
+      return;
+    }
+
+    const intervals = RECONNECT_INTERVALS;
+    const seconds = intervals[Math.min(this.reconnectAttempt, intervals.length - 1)];
+
+    this.log.info(`Reconnecting in ${seconds} second(s)`);
+
+    this.reconnectTimeout = setTimeout(async () => {
+      this.reconnectTimeout = null;
+      this.reconnectAttempt++;
+
+      try {
+        // the RPC handler connects the socket before sending a request, so any request
+        // will re-establish the connection
+        await this.device.rpcHandler.request('Shelly.GetDeviceInfo');
+      } catch (e) {
+        this.log.debug('Reconnection attempt failed:', e instanceof Error ? e.message : e);
+        this.scheduleReconnect();
+      }
+    }, seconds * 1000);
+  }
+
+  /**
+   * Aborts any pending reconnection attempt.
+   */
+  protected clearReconnectTimeout() {
+    if (this.reconnectTimeout !== null) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
   }
 
   /**
@@ -306,6 +384,9 @@ export abstract class DeviceDelegate {
    * Removes all event listeners from this device.
    */
   detach() {
+    this.destroyed = true;
+    this.clearReconnectTimeout();
+
     this.device.rpcHandler
       .off('connect', this.handleConnect, this)
       .off('disconnect', this.handleDisconnect, this)
